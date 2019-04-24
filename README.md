@@ -325,7 +325,13 @@ Disconnects all clients.
 
 Events:
 
-* `closed`, in case the broker is closed
+* `closed`, in case the broker is closed  
+
+----
+<a name="Server"></a>
+### Server
+
+Class/alias for the MQTT Broker.
 
 -------------------------------------------------------
 <a name="Client"></a>
@@ -335,7 +341,7 @@ Classes for all connected clients.
 
 Events:
 
-* `error`, in case something bad happended
+* `error`, in case something bad happened
 
 -------------------------------------------------------
 <a name="clientid"></a>
@@ -405,6 +411,81 @@ You can subscribe on the following `$SYS` topics to get client presence:
  - `$SYS/+/new/clients` - will inform about new clients connections
  - `$SYS/+/disconnect/clients` - will inform about client disconnections.
 The payload will contain the `clientId` of the connected/disconnected client
+
+----
+## Typescript
+Aedes provides its own Type definitions. These are at `types/index.d.ts`.
+
+The tests are in `test/typescript/typings.ts` file.
+
+### Example
+
+The following example shows a sample template to build an Aedes based MQTT broker in Typescript.
+
+`aedes-server.ts`
+```Typescript
+import { Server, Client, AuthenticateError } from "aedes";
+import * as aedes from "aedes";
+import * as net from 'net';
+
+export class AedesServer {
+    private server: net.Server;
+    private port = 1883;
+    private broker: aedes.Aedes;
+    constructor() {
+        this.broker = Server();
+        this.server = net.createServer(this.broker.handle);
+        this.server.listen(this.port, () => {
+          console.log('server listening on port', this.port)
+          this.broker.on('client', this.clientConnected);
+          this.broker.on('clientDisconnect', this.clientDisconnected);
+          this.broker.on('keepaliveTimeout', this.keepaliveTimeout);
+          this.broker.on('publish', this.published);
+          console.log('Mosca server is up and running');
+
+      });
+    }
+
+    private clientConnected = (client: Client) => {
+        console.log('client connected', client.id);
+    }
+
+    private clientDisconnected = (client: Client) => {
+        console.log('client disconnected', client.id);
+    }
+
+    private keepaliveTimeout = (client: Client) => {
+        console.log('client keepaliveTimeout', client.id);
+    }
+
+    private connackSent = (client: Client) => {
+        console.log('client connackSent', client.id);
+    }
+
+    private published = (packet: any, client: Client) => {
+        console.log('Published', JSON.stringify(packet));
+    }
+
+    public send = (message: any, callback: () => void) => {
+        this.broker.publish(message, callback);
+    }
+}
+
+
+```
+
+`main.ts`
+```Typescript
+import { AedesServer } from "aedes-server";
+export class Main{
+    private broker: AedesServer;
+    constructor(){
+        this.broker = new AedesServer();
+    }
+}
+```
+
+Refer to [test/typescript/typings.ts](test/typescript/typings.ts) for more examples.
 
 ## Acknowledgements
 

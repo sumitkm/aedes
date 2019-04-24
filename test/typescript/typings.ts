@@ -1,6 +1,6 @@
 // relative path uses package.json {"types":"types/index.d.ts", ...}
 
-import { Server, Client, AuthenticateError } from '../..'
+import { Server, Client, AuthenticateError, AuthErrorCode } from '../..'
 import { IPublishPacket, ISubscribePacket, ISubscription, IUnsubscribePacket } from 'mqtt-packet'
 import { createServer } from 'net'
 
@@ -8,7 +8,7 @@ const broker = Server({
   concurrency: 100,
   heartbeatInterval: 60000,
   connectTimeout: 30000,
-  authenticate: (client: Client, username: string, password: string, callback) => {
+  authenticate: (client: Client, username: string, password: string, callback: (err: Error & { returnCode: AuthErrorCode } | null, success: boolean | null) => void) => {
     if (username === 'test' && password === 'test') {
       callback(null, true)
     } else {
@@ -18,7 +18,7 @@ const broker = Server({
       callback(error, false)
     }
   },
-  authorizePublish: (client: Client, packet: IPublishPacket, callback) => {
+  authorizePublish: (client: Client, packet: IPublishPacket, callback: (err: Error | null) => void) => {
     if (packet.topic === 'aaaa') {
       return callback(new Error('wrong topic'))
     }
@@ -29,7 +29,7 @@ const broker = Server({
 
     callback(null)
   },
-  authorizeSubscribe: (client: Client, sub: ISubscription, callback) => {
+  authorizeSubscribe: (client: Client, sub: ISubscription, callback: (err: Error | null, sub?: ISubscription) => void) => {
     if (sub.topic === 'aaaa') {
       return callback(new Error('wrong topic'))
     }
@@ -41,7 +41,7 @@ const broker = Server({
 
     callback(null, sub)
   },
-  authorizeForward: (client, packet: IPublishPacket) => {
+  authorizeForward: (client: Client, packet: IPublishPacket) => {
     if (packet.topic === 'aaaa' && client.id === 'I should not see this') {
       return null
       // also works with return undefined
